@@ -7,9 +7,13 @@
 
 import SwiftUI
 
+
 @main
-struct ScreenSaverMakerGULApp: App {
-    var body: some Scene {
+struct
+ScreenSaverMakerGULApp: App
+{
+    var body: some Scene
+    {
         WindowGroup {
             ContentView()
         }

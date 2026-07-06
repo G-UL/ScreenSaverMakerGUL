@@ -114,13 +114,22 @@ struct ContentView: View
                                 {
                                     removeVideo(video)
                                 }
-                            label:
+                                label:
                                 {
                                     Image(systemName: "trash")
                                         .foregroundStyle(.secondary)
                                 }
                                 .buttonStyle(.plain)
                             }
+                        }
+                        // This handler fires when the user drags a row.
+                        // indices is where the row(s) came from,
+                        // newOffset is where they're being dropped.
+                        .onMove
+                        {
+                            indices, newOffset in
+                            videos.move(fromOffsets: indices,
+                                        toOffset: newOffset)
                         }
                     }
                     .frame(minHeight: 200)

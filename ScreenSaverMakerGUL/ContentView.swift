@@ -6,12 +6,17 @@
 //
 
 import SwiftUI
+// for identifying video file types
+import UniformTypeIdentifiers
+
 
 struct ContentView: View
 {
     @State private var showingHelp = false
-
-
+    @State private var videoURLs: [URL] = []        // the videos the user added
+    @State private var showingFilePicker = false     // controls the file picker
+    
+    
     var body: some View
     {
         VStack(spacing: 0)
@@ -28,13 +33,13 @@ struct ContentView: View
                         .scaledToFit()
                         .frame(height: 32)
                 }
-
+                
                 Text("Screensaver Maker")
                     .font(.title3)
                     .foregroundStyle(.white)
-
+                
                 Spacer()   // pushes the nav items to the right edge
-
+                
                 Button("Help") {
                     showingHelp = true
                 }
@@ -45,14 +50,49 @@ struct ContentView: View
             .padding(.vertical,
                      14)
             .background(Color.black)
-
+            
             // ---- MAIN WORKSPACE (empty for now) ----
-            Spacer()
-            Text("Video workspace goes here")
-                .foregroundStyle(.secondary)
-            Spacer()
-
-
+            VStack(spacing: 16)
+            {
+                // "Add Videos" button
+                // The first block is what happens on click (open the picker)
+                Button
+                {
+                    showingFilePicker = true
+                }
+                // the label: block is what it looks like
+                // (a "+" icon with "Add Videos" text)
+                label:
+                {
+                    // Label pairs text with an icon. plus.circle.fill is
+                    // a built-in SF Symbol (a filled plus-in-circle).
+                    // This is where SF Symbols do shine — generic UI
+                    // icons like plus, gear, trash are all there
+                    // (it's only brand logos they lack).
+                    Label("Add Videos",
+                          systemImage: "plus.circle.fill")
+                    .font(.title3)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+                
+                // Temporary: show how many videos have been added, so we can
+                // confirm the picker works before we build the real list.
+                Text("\(videoURLs.count) video(s) added")
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity,
+                   maxHeight: .infinity)
+            .fileImporter(
+                isPresented: $showingFilePicker,
+                allowedContentTypes: [.movie],   // only video files
+                allowsMultipleSelection: true    // let them pick several at once
+            )
+            {
+                result in handleFilePick(result)
+            }
+            
+            
             // ---- FOOTER ----
             HStack
             {
@@ -62,9 +102,9 @@ struct ContentView: View
                     .foregroundStyle(Color(red: 0.2,
                                            green: 0.2,
                                            blue: 0.2))
-
+                
                 Spacer()   // pushes everything below to the right
-
+                
                 // Footer logo → /place/
                 Link(destination: URL(string: "https://g-ul.me/place/")!)
                 {
@@ -73,7 +113,7 @@ struct ContentView: View
                         .scaledToFit()
                         .frame(height: 28)
                 }
-
+                
                 // Social icons (red circles) — REPLACE the image names below
                 // with your actual asset names.
                 SocialIcon(imageName: "Facebook-Logo",
@@ -98,7 +138,25 @@ struct ContentView: View
             HelpView()
         }
     }
+    
+    
+    // Called when the user finishes picking files.
+    private
+    func
+    handleFilePick(_ result: Result<[URL], Error>)
+    {
+        switch result
+        {
+            case .success(let urls):
+                // Add the newly picked videos to our list.
+                videoURLs.append(contentsOf: urls)
+            case .failure(let error):
+                // If something went wrong, just log it for now.
+                print("File pick failed: \(error.localizedDescription)")
+        }
+    }
 }
+
 
 #Preview
 {

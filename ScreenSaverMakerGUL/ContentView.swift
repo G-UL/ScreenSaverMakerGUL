@@ -13,7 +13,7 @@ import UniformTypeIdentifiers
 struct ContentView: View
 {
     @State private var showingHelp = false
-    @State private var videoURLs: [URL] = []        // the videos the user added
+    @State private var videos: [VideoItem] = []      // the videos the user added
     @State private var showingFilePicker = false     // controls the file picker
     
     
@@ -62,7 +62,7 @@ struct ContentView: View
                 }
                 // the label: block is what it looks like
                 // (a "+" icon with "Add Videos" text)
-                label:
+            label:
                 {
                     // Label pairs text with an icon. plus.circle.fill is
                     // a built-in SF Symbol (a filled plus-in-circle).
@@ -75,11 +75,56 @@ struct ContentView: View
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.red)
+                .padding(.top,
+                         20)
                 
-                // Temporary: show how many videos have been added, so we can
-                // confirm the picker works before we build the real list.
-                Text("\(videoURLs.count) video(s) added")
-                    .foregroundStyle(.secondary)
+                // Show the added videos as a list, or a hint if empty.
+                if videos.isEmpty
+                {
+                    Spacer()
+                    Text("No videos yet. Click \"Add Videos\" to begin.")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                else
+                {
+                    // List is the scrollable container;
+                    // ForEach walks through each url in your array and
+                    // builds a row for it. id: \.self tells it to
+                    // identify each row by the URL itself
+                    // (since URLs are unique).
+                    List
+                    {
+                        ForEach(videos)
+                        {
+                            video in
+                            HStack
+                            {
+                                Image(systemName: "film")
+                                    .foregroundStyle(.red)
+                                // a URL is a long path like
+                                // Users/gul/Movies/clip1.mov;
+                                // .lastPathComponent extracts just
+                                // the filename (clip1.mov).
+                                // Much friendlier to show than the full path.
+                                Text(video.url.lastPathComponent)
+                                Spacer()
+                                // Delete button for this row
+                                Button
+                                {
+                                    removeVideo(video)
+                                }
+                            label:
+                                {
+                                    Image(systemName: "trash")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    .frame(minHeight: 200)
+                }
             }
             .frame(maxWidth: .infinity,
                    maxHeight: .infinity)
@@ -147,13 +192,22 @@ struct ContentView: View
     {
         switch result
         {
-            case .success(let urls):
-                // Add the newly picked videos to our list.
-                videoURLs.append(contentsOf: urls)
-            case .failure(let error):
-                // If something went wrong, just log it for now.
-                print("File pick failed: \(error.localizedDescription)")
+        case .success(let urls):
+            // Wrap each picked URL in a VideoItem and add to our list.
+            videos.append(contentsOf: urls.map { VideoItem(url: $0) })
+        case .failure(let error):
+            // If something went wrong, just log it for now.
+            print("File pick failed: \(error.localizedDescription)")
         }
+    }
+    
+    
+    // Remove a specific video from the list.
+    private
+    func
+    removeVideo(_ video: VideoItem)
+    {
+        videos.removeAll { $0.id == video.id }
     }
 }
 
@@ -165,7 +219,8 @@ struct ContentView: View
 
 
 // The usage guide shown when "Help" is clicked.
-struct HelpView: View
+struct
+HelpView: View
 {
     @Environment(\.dismiss) private var dismiss
 
@@ -216,7 +271,8 @@ struct HelpView: View
 
 
 // A single social icon: a brand image on a red circle, links to a URL.
-struct SocialIcon: View
+struct
+SocialIcon: View
 {
     let imageName: String
     let url: String
@@ -239,3 +295,11 @@ struct SocialIcon: View
 }
 
 
+// One video in the user's list. The UUID gives each row a stable,
+// unique identity — even if the same file is added twice.
+struct
+VideoItem: Identifiable
+{
+    let id = UUID()
+    let url: URL
+}

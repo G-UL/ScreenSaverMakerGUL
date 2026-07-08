@@ -3,55 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>files</key>
-	<dict>
-		<key>Resources/clip1.mov</key>
-		<data>
-		s4xonDSOudrEoOPJ3f5HVSEM/H0=
-		</data>
-		<key>Resources/clip2.mov</key>
-		<data>
-		Gt6hAz+aWVHybJTxyNdFCGraUgc=
-		</data>
-		<key>Resources/clip3.mov</key>
-		<data>
-		jh+VzNo+5VcjK/gbWHgRwtEfJg8=
-		</data>
-		<key>Resources/test.mov</key>
-		<data>
-		PbokvKdckYS+vWjh9jH72lNWHC8=
-		</data>
-	</dict>
+	<dict/>
 	<key>files2</key>
-	<dict>
-		<key>Resources/clip1.mov</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			PB5S0sm7srWzS+oWZmuwmlndsUAVdUdVY9myhD612XU=
-			</data>
-		</dict>
-		<key>Resources/clip2.mov</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			DPpIInuD+1ENhj3xHCJYJx++IE7j0yzcAUzOkxS+Cms=
-			</data>
-		</dict>
-		<key>Resources/clip3.mov</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			/wbiO8MZl+FHkXUv24uA+NW7U3td/tKN/lmZTMT3Mgs=
-			</data>
-		</dict>
-		<key>Resources/test.mov</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			Anf2s9D25rpqN+Jb/exot/LpSUZupodLGHMJaqL6KvM=
-			</data>
-		</dict>
-	</dict>
+	<dict/>
 	<key>rules</key>
 	<dict>
 		<key>^Resources/</key>

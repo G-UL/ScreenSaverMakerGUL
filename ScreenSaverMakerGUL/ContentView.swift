@@ -8,6 +8,10 @@
 import SwiftUI
 // for identifying video file types
 import UniformTypeIdentifiers
+// for NSSavePanel
+// It's the standard save dialog: the user navigates,
+// types a filename, hits Save, and we get back the URL they chose.
+import AppKit
 
 
 struct ContentView: View
@@ -15,8 +19,9 @@ struct ContentView: View
     @State private var showingHelp = false
     @State private var videos: [VideoItem] = []      // the videos the user added
     @State private var showingFilePicker = false     // controls the file picker
-    
-    
+    @State private var statusMessage = ""            // feedback for the user
+
+
     var body: some View
     {
         VStack(spacing: 0)
@@ -33,13 +38,13 @@ struct ContentView: View
                         .scaledToFit()
                         .frame(height: 32)
                 }
-                
+
                 Text("Screensaver Maker")
                     .font(.title3)
                     .foregroundStyle(.white)
-                
+
                 Spacer()   // pushes the nav items to the right edge
-                
+
                 Button("Help") {
                     showingHelp = true
                 }
@@ -50,7 +55,7 @@ struct ContentView: View
             .padding(.vertical,
                      14)
             .background(Color.black)
-            
+
             // ---- MAIN WORKSPACE (empty for now) ----
             VStack(spacing: 16)
             {
@@ -62,7 +67,7 @@ struct ContentView: View
                 }
                 // the label: block is what it looks like
                 // (a "+" icon with "Add Videos" text)
-            label:
+                label:
                 {
                     // Label pairs text with an icon. plus.circle.fill is
                     // a built-in SF Symbol (a filled plus-in-circle).
@@ -77,7 +82,29 @@ struct ContentView: View
                 .tint(.red)
                 .padding(.top,
                          20)
-                
+
+                Button
+                {
+                    createScreensaver()
+                }
+                label:
+                {
+                    Label("Create Screensaver",
+                          systemImage: "wand.and.stars")
+                    .font(.title3)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.black)
+                .disabled(videos.isEmpty)      // can't create with no videos
+
+                // Feedback line
+                if !statusMessage.isEmpty
+                {
+                    Text(statusMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 // Show the added videos as a list, or a hint if empty.
                 if videos.isEmpty
                 {
@@ -145,8 +172,8 @@ struct ContentView: View
             {
                 result in handleFilePick(result)
             }
-            
-            
+
+
             // ---- FOOTER ----
             HStack
             {
@@ -156,9 +183,9 @@ struct ContentView: View
                     .foregroundStyle(Color(red: 0.2,
                                            green: 0.2,
                                            blue: 0.2))
-                
+
                 Spacer()   // pushes everything below to the right
-                
+
                 // Footer logo → /place/
                 Link(destination: URL(string: "https://g-ul.me/place/")!)
                 {
@@ -167,7 +194,7 @@ struct ContentView: View
                         .scaledToFit()
                         .frame(height: 28)
                 }
-                
+
                 // Social icons (red circles) — REPLACE the image names below
                 // with your actual asset names.
                 SocialIcon(imageName: "Facebook-Logo",
@@ -192,8 +219,70 @@ struct ContentView: View
             HelpView()
         }
     }
-    
-    
+
+
+    // Piece 1: copy the embedded engine template to a test location.
+    // Ask the user where to save, then copy the engine template there.
+    private
+    func
+    createScreensaver()
+    {
+        // 1. Find the engine template inside our own app bundle.
+        guard let engineURL = Bundle.main.url(forResource: "ScreenSaverGUL",
+                                              withExtension: "saver")
+        else
+        {
+            statusMessage = "Error: engine template not found in app."
+            return
+        }
+
+        // 2. Show the system save dialog with a suggested name.
+        let panel = NSSavePanel()
+        panel.title = "Save Your Screensaver"
+        panel.nameFieldStringValue = "MyScreensaver.saver"   // default name
+        panel.canCreateDirectories = true
+        // Only proceed if the user clicked Save (not Cancel).
+        guard panel.runModal() == .OK, let destination = panel.url
+        else
+        {
+            statusMessage = "Cancelled."
+            return
+        }
+
+        do
+        {
+            // 3. Replace anything already at that path.
+            if FileManager.default.fileExists(atPath: destination.path)
+            {
+                try FileManager.default.removeItem(at: destination)
+            }
+
+            // 4. Copy the engine template to the chosen location.
+            try FileManager.default.copyItem(at: engineURL,
+                                             to: destination)
+
+            // 5. Update the copy's Info.plist so macOS shows the user's name.
+            //    Get the name without the ".saver" extension.
+            let saverName = destination.deletingPathExtension().lastPathComponent
+            let plistURL = destination
+                .appendingPathComponent("Contents")
+                .appendingPathComponent("Info.plist")
+            if let plist = NSMutableDictionary(contentsOf: plistURL)
+            {
+                plist["CFBundleName"] = saverName
+                plist["CFBundleDisplayName"] = saverName
+                plist.write(to: plistURL, atomically: true)
+            }
+
+            statusMessage = "Created: \(destination.lastPathComponent)"
+        }
+        catch
+        {
+            statusMessage = "Failed: \(error.localizedDescription)"
+        }
+    }
+
+
     // Called when the user finishes picking files.
     private
     func
@@ -209,8 +298,8 @@ struct ContentView: View
             print("File pick failed: \(error.localizedDescription)")
         }
     }
-    
-    
+
+
     // Remove a specific video from the list.
     private
     func

@@ -31,6 +31,6 @@
 
 - You'll also notice each View file has a `#Preview` section and a live preview canvas on the right side of Xcode — SwiftUI shows you the UI as you type, without building and installing. This is a huge advantage over the engine work: no cache-clearing dance, you see changes instantly. You'll like this part.
 
-
+- Views composed with VStack/HStack/ZStack, described declaratively, shown live in a preview.
 
 

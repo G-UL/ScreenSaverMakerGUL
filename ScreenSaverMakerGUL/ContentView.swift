@@ -20,8 +20,8 @@ struct ContentView: View
     @State private var videos: [VideoItem] = []      // the videos the user added
     @State private var showingFilePicker = false     // controls the file picker
     @State private var statusMessage = ""            // feedback for the user
-
-
+    
+    
     var body: some View
     {
         VStack(spacing: 0)
@@ -38,13 +38,13 @@ struct ContentView: View
                         .scaledToFit()
                         .frame(height: 32)
                 }
-
+                
                 Text("Screensaver Maker")
                     .font(.title3)
                     .foregroundStyle(.white)
-
+                
                 Spacer()   // pushes the nav items to the right edge
-
+                
                 Button("Help") {
                     showingHelp = true
                 }
@@ -55,7 +55,7 @@ struct ContentView: View
             .padding(.vertical,
                      14)
             .background(Color.black)
-
+            
             // ---- MAIN WORKSPACE (empty for now) ----
             VStack(spacing: 16)
             {
@@ -67,7 +67,7 @@ struct ContentView: View
                 }
                 // the label: block is what it looks like
                 // (a "+" icon with "Add Videos" text)
-                label:
+            label:
                 {
                     // Label pairs text with an icon. plus.circle.fill is
                     // a built-in SF Symbol (a filled plus-in-circle).
@@ -82,12 +82,12 @@ struct ContentView: View
                 .tint(.red)
                 .padding(.top,
                          20)
-
+                
                 Button
                 {
                     createScreensaver()
                 }
-                label:
+            label:
                 {
                     Label("Create Screensaver",
                           systemImage: "wand.and.stars")
@@ -96,7 +96,7 @@ struct ContentView: View
                 .buttonStyle(.borderedProminent)
                 .tint(.black)
                 .disabled(videos.isEmpty)      // can't create with no videos
-
+                
                 // Feedback line
                 if !statusMessage.isEmpty
                 {
@@ -104,7 +104,7 @@ struct ContentView: View
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-
+                
                 // Show the added videos as a list, or a hint if empty.
                 if videos.isEmpty
                 {
@@ -141,7 +141,7 @@ struct ContentView: View
                                 {
                                     removeVideo(video)
                                 }
-                                label:
+                            label:
                                 {
                                     Image(systemName: "trash")
                                         .foregroundStyle(.secondary)
@@ -172,8 +172,8 @@ struct ContentView: View
             {
                 result in handleFilePick(result)
             }
-
-
+            
+            
             // ---- FOOTER ----
             HStack
             {
@@ -183,9 +183,9 @@ struct ContentView: View
                     .foregroundStyle(Color(red: 0.2,
                                            green: 0.2,
                                            blue: 0.2))
-
+                
                 Spacer()   // pushes everything below to the right
-
+                
                 // Footer logo → /place/
                 Link(destination: URL(string: "https://g-ul.me/place/")!)
                 {
@@ -194,7 +194,7 @@ struct ContentView: View
                         .scaledToFit()
                         .frame(height: 28)
                 }
-
+                
                 // Social icons (red circles) — REPLACE the image names below
                 // with your actual asset names.
                 SocialIcon(imageName: "Facebook-Logo",
@@ -219,8 +219,8 @@ struct ContentView: View
             HelpView()
         }
     }
-
-
+    
+    
     // Piece 1: copy the embedded engine template to a test location.
     // Ask the user where to save, then copy the engine template there.
     private
@@ -235,7 +235,7 @@ struct ContentView: View
             statusMessage = "Error: engine template not found in app."
             return
         }
-
+        
         // 2. Show the system save dialog with a suggested name.
         let panel = NSSavePanel()
         panel.title = "Save Your Screensaver"
@@ -248,7 +248,7 @@ struct ContentView: View
             statusMessage = "Cancelled."
             return
         }
-
+        
         do
         {
             // 3. Replace anything already at that path.
@@ -256,7 +256,7 @@ struct ContentView: View
             {
                 try FileManager.default.removeItem(at: destination)
             }
-
+            
             // 4. Copy the engine template to the chosen location.
             try FileManager.default.copyItem(at: engineURL,
                                              to: destination)
@@ -273,12 +273,143 @@ struct ContentView: View
                 plist["CFBundleDisplayName"] = saverName
                 plist.write(to: plistURL, atomically: true)
             }
+            
+            // 6. Create the Resources folder (the clean template has none).
+            let resourcesURL = destination
+                .appendingPathComponent("Contents")
+                .appendingPathComponent("Resources")
+            
+            try FileManager.default.createDirectory(
+                at: resourcesURL,
+                withIntermediateDirectories: true
+            )
+            
+            // 7. Copy each video in, numbered to preserve the user's order
+            //    and to avoid duplicate-filename collisions.
+            for (index, video) in videos.enumerated()
+            {
+                let numbered = String(format: "%03d_%@",
+                                      index + 1,
+                                      video.url.lastPathComponent)
+                let dest = resourcesURL.appendingPathComponent(numbered)
+                // Claim sandbox access to this user-picked file.
+                let didStart = video.url.startAccessingSecurityScopedResource()
+                defer
+                {
+                    if didStart
+                    {
+                        video.url.stopAccessingSecurityScopedResource()
+                    }
+                }
+                try FileManager.default.copyItem(at: video.url,
+                                                 to: dest)
+                // Make this video world-readable natively — the sandboxed
+                // copy gives owner-only permissions, which the screensaver
+                // host process can't read.
+                try FileManager.default.setAttributes(
+                    [.posixPermissions: 0o644],
+                    ofItemAtPath: dest.path
+                )
+            }
+
+            // 8. Clear extended attributes natively (spawned xattr lacks
+            //    our sandbox grant; these C calls run in-process).
+            clearXattrsRecursively(at: destination)
+
+            // 9. Re-sign ad-hoc. codesign has no Swift API, so it stays a
+            //    Process call — and it succeeded in our tests.
+            runCommand("/usr/bin/codesign",
+                       ["--force",
+                        "--deep",
+                        "--sign",
+                        "-",
+                        destination.path])
+
+            // 10. Strip the quarantine flag — possible now that we're
+            //     unsandboxed. Without this, Gatekeeper blocks the output.
+            runCommand("/usr/bin/xattr",
+                       ["-dr",
+                        "com.apple.quarantine",
+                        destination.path])
 
             statusMessage = "Created: \(destination.lastPathComponent)"
         }
         catch
         {
             statusMessage = "Failed: \(error.localizedDescription)"
+        }
+    }
+
+
+    // Remove all extended attributes from a file — natively, in-process.
+    private
+    func
+    clearXattrs(atPath path: String)
+    {
+        let size = listxattr(path,
+                             nil,
+                             0,
+                             0)
+        guard size > 0 else
+        {
+            return
+        }
+
+        var buffer = [CChar](repeating: 0,
+                             count: size)
+        let count = listxattr(path,
+                              &buffer,
+                              size,
+                              0)
+        guard count > 0 else
+        {
+            return
+        }
+
+        // The buffer holds attribute names separated by null bytes.
+        var names: [String] = []
+        var current = ""
+        for ch in buffer[0..<count]
+        {
+            if ch == 0
+            {
+                if !current.isEmpty
+                {
+                    names.append(current)
+                }
+
+                current = ""
+            }
+            else
+            {
+                current.append(Character(UnicodeScalar(UInt8(bitPattern: ch))))
+            }
+        }
+
+        for name in names
+        {
+            removexattr(path,
+                        name,
+                        0)
+        }
+    }
+
+
+    // Apply clearXattrs to a bundle and everything inside it.
+    private
+    func
+    clearXattrsRecursively(at url: URL)
+    {
+        clearXattrs(atPath: url.path)
+        if let enumerator = FileManager.default.enumerator(
+            at: url,
+            includingPropertiesForKeys: nil
+        )
+        {
+            for case let file as URL in enumerator
+            {
+                clearXattrs(atPath: file.path)
+            }
         }
     }
 
@@ -298,14 +429,39 @@ struct ContentView: View
             print("File pick failed: \(error.localizedDescription)")
         }
     }
-
-
+    
+    
     // Remove a specific video from the list.
     private
     func
     removeVideo(_ video: VideoItem)
     {
         videos.removeAll { $0.id == video.id }
+    }
+    
+    
+    // Run a command-line tool and wait for it to finish.
+    // Returns true if it exited successfully.
+    @discardableResult
+    private
+    func
+    runCommand(_ toolPath: String,
+               _ arguments: [String]) -> Bool
+    {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: toolPath)
+        process.arguments = arguments
+        do
+        {
+            try process.run()
+            process.waitUntilExit()
+
+            return process.terminationStatus == 0
+        }
+        catch
+        {
+            return false
+        }
     }
 }
 

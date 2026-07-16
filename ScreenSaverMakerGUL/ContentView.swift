@@ -34,19 +34,18 @@ struct ContentView: View
                 // text so we can see the header taking shape.
                 Link(destination: URL(string: "https://g-ul.me/hello/")!)
                 {
-                    Image("G-UL-Logo-Big")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 32)
+                    Image("G-UL-Logo-Big").resizable()
+                                          .scaledToFit()
+                                          .frame(height: 32)
                 }
                 
-                Text("Screensaver Maker")
-                    .font(.title3)
-                    .foregroundStyle(.white)
+                Text("Screensaver Maker").font(.title3)
+                                         .foregroundStyle(.white)
                 
                 Spacer()   // pushes the nav items to the right edge
                 
-                Button("Help") {
+                Button("Help")
+                {
                     showingHelp = true
                 }
                 .foregroundStyle(.white)
@@ -112,6 +111,19 @@ struct ContentView: View
                     }
                     .buttonStyle(.bordered)
                     .tint(.red)
+                }
+
+                // Clear the whole list (manual, per spec — never automatic).
+                if !videos.isEmpty
+                {
+                    Button("Clear All")
+                    {
+                        videos.removeAll()
+                        statusMessage = ""
+                        lastCreatedSaver = nil
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
                 }
 
                 // Feedback line
@@ -351,6 +363,8 @@ struct ContentView: View
 
             statusMessage = "Created: \(destination.lastPathComponent)"
             lastCreatedSaver = destination
+            // Show the new file in a Finder window, selected.
+            NSWorkspace.shared.activateFileViewerSelecting([destination])
         }
         catch
         {
@@ -548,11 +562,15 @@ HelpView: View
             VStack(alignment: .leading,
                    spacing: 10)
             {
-                Text("1.  Add your video files.")
-                Text("2.  Drag to arrange the play order.")
-                Text("3.  Click \"Create Screensaver\".")
-                Text("4.  Install the generated screensaver.")
+                Text("1.  Click \"Add Videos\" and choose your video files (.mov, .mp4, .m4v).")
+                Text("2.  Drag rows up or down to set the play order. Use the trash icon to remove one.")
+                Text("3.  Click \"Create Screensaver\" and choose a name and location.")
+                Text("4.  Click \"Install to Screen Savers\".")
+                Text("5.  Open System Settings → Wallpaper → Screen Saver… and select your screensaver.")
             }
+            .lineLimit(nil)
+            .fixedSize(horizontal: false,
+                       vertical: true)
 
             Spacer()
 
@@ -572,7 +590,7 @@ HelpView: View
         }
         .padding(30)
         .frame(width: 460,
-               height: 360)
+               height: 420)
     }
 }
 

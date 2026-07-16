@@ -33,4 +33,9 @@
 
 - Views composed with VStack/HStack/ZStack, described declaratively, shown live in a preview.
 
+- Sandboxed apps can't remove quarantine flags by design (Gatekeeper's whole point); security-scoped grants don't transfer to child processes (why spawned `xattr` failed but in-process `FileManager` worked); removing a capability in Xcode's UI needs verification (`codesign -d --entitlements`) because it doesn't always take; and `killall` on stale host processes should be an early debugging step, not a last resort — a days-old `legacyScreenSaver` process masked every fix we made.
+
+
+
+
 

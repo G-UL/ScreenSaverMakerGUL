@@ -20,8 +20,9 @@ struct ContentView: View
     @State private var videos: [VideoItem] = []      // the videos the user added
     @State private var showingFilePicker = false     // controls the file picker
     @State private var statusMessage = ""            // feedback for the user
-    
-    
+    @State private var lastCreatedSaver: URL? = nil  // most recent output
+
+
     var body: some View
     {
         VStack(spacing: 0)
@@ -67,7 +68,7 @@ struct ContentView: View
                 }
                 // the label: block is what it looks like
                 // (a "+" icon with "Add Videos" text)
-            label:
+                label:
                 {
                     // Label pairs text with an icon. plus.circle.fill is
                     // a built-in SF Symbol (a filled plus-in-circle).
@@ -87,7 +88,7 @@ struct ContentView: View
                 {
                     createScreensaver()
                 }
-            label:
+                label:
                 {
                     Label("Create Screensaver",
                           systemImage: "wand.and.stars")
@@ -96,7 +97,23 @@ struct ContentView: View
                 .buttonStyle(.borderedProminent)
                 .tint(.black)
                 .disabled(videos.isEmpty)      // can't create with no videos
-                
+
+                // Install button — only appears after something was created.
+                if let saver = lastCreatedSaver
+                {
+                    Button
+                    {
+                        installScreensaver(saver)
+                    }
+                    label:
+                    {
+                        Label("Install to Screen Savers",
+                              systemImage: "arrow.down.circle.fill")
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                }
+
                 // Feedback line
                 if !statusMessage.isEmpty
                 {
@@ -333,6 +350,7 @@ struct ContentView: View
                         destination.path])
 
             statusMessage = "Created: \(destination.lastPathComponent)"
+            lastCreatedSaver = destination
         }
         catch
         {
@@ -429,8 +447,43 @@ struct ContentView: View
             print("File pick failed: \(error.localizedDescription)")
         }
     }
-    
-    
+
+
+    // Copy the generated saver into the user's Screen Savers folder.
+    private func installScreensaver(_ saver: URL)
+    {
+        let screenSaversDir = FileManager.default
+                                         .homeDirectoryForCurrentUser
+                                         .appendingPathComponent("Library")
+                                         .appendingPathComponent("Screen Savers")
+        let target = screenSaversDir
+                     .appendingPathComponent(saver.lastPathComponent)
+
+        do
+        {
+            // Make sure the folder exists (it should, but be safe).
+            try FileManager.default.createDirectory(
+                    at: screenSaversDir,
+                    withIntermediateDirectories: true
+            )
+
+            // Replace wholesale if the same name is already installed.
+            if FileManager.default.fileExists(atPath: target.path)
+            {
+                try FileManager.default.removeItem(at: target)
+            }
+
+            try FileManager.default.copyItem(at: saver,
+                                             to: target)
+            statusMessage = "Installed! Select \"\(target.deletingPathExtension().lastPathComponent)\" in System Settings → Wallpaper → Screen Saver."
+        }
+        catch
+        {
+            statusMessage = "Install failed: \(error.localizedDescription)"
+        }
+    }
+
+
     // Remove a specific video from the list.
     private
     func
@@ -438,8 +491,8 @@ struct ContentView: View
     {
         videos.removeAll { $0.id == video.id }
     }
-    
-    
+
+
     // Run a command-line tool and wait for it to finish.
     // Returns true if it exited successfully.
     @discardableResult
@@ -530,7 +583,6 @@ SocialIcon: View
 {
     let imageName: String
     let url: String
-
     var body: some View
     {
         Link(destination: URL(string: url)!)

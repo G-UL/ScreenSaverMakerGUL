@@ -30,8 +30,6 @@ struct ContentView: View
             // ---- BLACK HEADER BAR ----
             HStack
             {
-                // The crown logo will go here later; for now, a placeholder
-                // text so we can see the header taking shape.
                 Link(destination: URL(string: "https://g-ul.me/hello/")!)
                 {
                     Image("G-UL-Logo-Big").resizable()
@@ -55,8 +53,7 @@ struct ContentView: View
             .padding(.vertical,
                      14)
             .background(Color.black)
-            
-            // ---- MAIN WORKSPACE (empty for now) ----
+
             VStack(spacing: 16)
             {
                 // "Add Videos" button
@@ -82,7 +79,7 @@ struct ContentView: View
                 .tint(.red)
                 .padding(.top,
                          20)
-                
+
                 Button
                 {
                     createScreensaver()
@@ -146,7 +143,7 @@ struct ContentView: View
                 {
                     // List is the scrollable container;
                     // ForEach walks through each url in your array and
-                    // builds a row for it. id: \.self tells it to
+                    // builds a row for it. Identifiable tells it to
                     // identify each row by the URL itself
                     // (since URLs are unique).
                     List
@@ -170,7 +167,7 @@ struct ContentView: View
                                 {
                                     removeVideo(video)
                                 }
-                            label:
+                                label:
                                 {
                                     Image(systemName: "trash")
                                         .foregroundStyle(.secondary)
@@ -201,8 +198,8 @@ struct ContentView: View
             {
                 result in handleFilePick(result)
             }
-            
-            
+
+
             // ---- FOOTER ----
             HStack
             {
@@ -212,9 +209,9 @@ struct ContentView: View
                     .foregroundStyle(Color(red: 0.2,
                                            green: 0.2,
                                            blue: 0.2))
-                
+
                 Spacer()   // pushes everything below to the right
-                
+
                 // Footer logo → /place/
                 Link(destination: URL(string: "https://g-ul.me/place/")!)
                 {
@@ -223,9 +220,7 @@ struct ContentView: View
                         .scaledToFit()
                         .frame(height: 28)
                 }
-                
-                // Social icons (red circles) — REPLACE the image names below
-                // with your actual asset names.
+
                 SocialIcon(imageName: "Facebook-Logo",
                            url: "https://www.facebook.com/stuperfection.g.ul/")
                 SocialIcon(imageName: "LinkedIn-Logo",
@@ -248,9 +243,8 @@ struct ContentView: View
             HelpView()
         }
     }
-    
-    
-    // Piece 1: copy the embedded engine template to a test location.
+
+
     // Ask the user where to save, then copy the engine template there.
     private
     func
@@ -264,7 +258,7 @@ struct ContentView: View
             statusMessage = "Error: engine template not found in app."
             return
         }
-        
+
         // 2. Show the system save dialog with a suggested name.
         let panel = NSSavePanel()
         panel.title = "Save Your Screensaver"
@@ -277,7 +271,7 @@ struct ContentView: View
             statusMessage = "Cancelled."
             return
         }
-        
+
         do
         {
             // 3. Replace anything already at that path.
@@ -302,17 +296,17 @@ struct ContentView: View
                 plist["CFBundleDisplayName"] = saverName
                 plist.write(to: plistURL, atomically: true)
             }
-            
+
             // 6. Create the Resources folder (the clean template has none).
             let resourcesURL = destination
                 .appendingPathComponent("Contents")
                 .appendingPathComponent("Resources")
-            
+
             try FileManager.default.createDirectory(
                 at: resourcesURL,
                 withIntermediateDirectories: true
             )
-            
+
             // 7. Copy each video in, numbered to preserve the user's order
             //    and to avoid duplicate-filename collisions.
             for (index, video) in videos.enumerated()
@@ -321,15 +315,6 @@ struct ContentView: View
                                       index + 1,
                                       video.url.lastPathComponent)
                 let dest = resourcesURL.appendingPathComponent(numbered)
-                // Claim sandbox access to this user-picked file.
-                let didStart = video.url.startAccessingSecurityScopedResource()
-                defer
-                {
-                    if didStart
-                    {
-                        video.url.stopAccessingSecurityScopedResource()
-                    }
-                }
                 try FileManager.default.copyItem(at: video.url,
                                                  to: dest)
                 // Make this video world-readable natively — the sandboxed
@@ -341,8 +326,7 @@ struct ContentView: View
                 )
             }
 
-            // 8. Clear extended attributes natively (spawned xattr lacks
-            //    our sandbox grant; these C calls run in-process).
+            // 8. Clear extended attributes on everything in the bundle.
             clearXattrsRecursively(at: destination)
 
             // 9. Re-sign ad-hoc. codesign has no Swift API, so it stays a
@@ -558,7 +542,6 @@ HelpView: View
             Text("This app turns your videos into a macOS screensaver.")
                 .foregroundStyle(.secondary)
 
-            // Placeholder steps — we'll refine these once features exist.
             VStack(alignment: .leading,
                    spacing: 10)
             {

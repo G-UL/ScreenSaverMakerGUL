@@ -27,7 +27,15 @@ Add videos, drag them into the order you want, click **Create Screensaver**, and
 
 Grab the latest build from [Releases](../../releases) (or build from source, below).
 
-**First-launch note:** this app is not notarized with Apple (no paid developer certificate), so macOS Gatekeeper will warn on first open. **Right-click the app → Open → Open** — one time only. This is the same situation as many indie Mac tools (including [Brooklyn](https://github.com/pedrommcarrasco/Brooklyn), which inspired this project).
+**First-launch note:** this app is not notarized with Apple (no paid developer
+certificate), so macOS will block it on first open:
+
+1. Double-click the app — macOS shows "Not Opened". Click **Done** (not Move to Trash!).
+2. Open **System Settings → Privacy & Security**, scroll to the Security section.
+3. Click **"Open Anyway"** next to the message about ScreenSaverMakerGUL, then confirm.
+
+This is needed once. Alternatively, in Terminal:
+`xattr -dr com.apple.quarantine /path/to/ScreenSaverMakerGUL.app`
 
 ## Building from source
 
